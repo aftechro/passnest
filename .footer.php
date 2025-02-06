@@ -209,14 +209,14 @@ function setDeleteCredentialInfo(credentialId, credentialName) {
     document.getElementById('credentialName').textContent = credentialName;
 }
 
-// Edit credentials
+
 // Edit credentials
 function populateEditModal(button) {
     // Get the data attributes from the clicked button
     const credentialId = button.getAttribute('data-id');
     const name = button.getAttribute('data-name');
     const username = button.getAttribute('data-username');
-    const password = button.getAttribute('data-password');
+    const password = button.getAttribute('data-password');  // Now it's decrypted
     const otp = button.getAttribute('data-otp');
     const url = button.getAttribute('data-url');
     const departmentId = button.getAttribute('data-department-id'); // Get the department ID
@@ -225,7 +225,7 @@ function populateEditModal(button) {
     document.getElementById('editCredentialId').value = credentialId;
     document.getElementById('editCredentialName').value = name;
     document.getElementById('editCredentialUsername').value = username;
-    document.getElementById('editCredentialPassword').value = password;
+    document.getElementById('editCredentialPassword').value = password;  // Decrypted password in the input field
     document.getElementById('editCredentialOTP').value = otp;
     document.getElementById('editCredentialURL').value = url;
 
@@ -235,6 +235,7 @@ function populateEditModal(button) {
         departmentDropdown.value = departmentId; // Pre-select the department
     }
 }
+
 
 // Initialize tooltips on page load
 document.addEventListener('DOMContentLoaded', function () {
