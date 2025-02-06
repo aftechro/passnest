@@ -239,10 +239,10 @@ function sendVerificationEmail($email, $userId) {
     $stmt = $pdo->prepare("UPDATE users_access SET verified = 0 WHERE user_id = :user_id");
     $stmt->execute([':user_id' => $userId]);
 
-    $verifyUrl = "https://keys.aftech.ro/verify?token=$verifyToken&user_id=$userId";
+    $verifyUrl = "$base_url/verify?token=$verifyToken&user_id=$userId";
     $subject = "Verify Your Email";
     $message = "Click the link below to verify your email:\n\n$verifyUrl";
-    $headers = "From: no-reply@keys.aftech.ro";
+    $headers = "From: no-reply@kpassnest.com";
 
     // Send email
     if (mail($email, $subject, $message, $headers)) {
