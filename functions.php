@@ -98,11 +98,31 @@ foreach ($credentials as $credential) {
     }
 }
 
+// Encryption and Decryption functions
+function encryptPassword($password) {
+    $key = 'your-secret-key'; // Replace with a secure key
+    $cipher = 'AES-128-CBC';
+    $ivlen = openssl_cipher_iv_length($cipher);
+    $iv = openssl_random_pseudo_bytes($ivlen);
+    $encrypted = openssl_encrypt($password, $cipher, $key, 0, $iv);
+    return base64_encode($iv . $encrypted);
+}
+
+function decryptPassword($encryptedPassword) {
+    $key = 'your-secret-key'; // Replace with a secure key
+    $cipher = 'AES-128-CBC';
+    $encryptedPassword = base64_decode($encryptedPassword);
+    $ivlen = openssl_cipher_iv_length($cipher);
+    $iv = substr($encryptedPassword, 0, $ivlen);
+    $encrypted = substr($encryptedPassword, $ivlen);
+    return openssl_decrypt($encrypted, $cipher, $key, 0, $iv);
+}
+
 // Add credentials logic
 if (isset($_POST['addCredential'])) {
     $name = $_POST['credentialName'];
     $username = $_POST['credentialUsername'];
-    $password = $_POST['credentialPassword']; 
+    $password = encryptPassword($_POST['credentialPassword']); // Encrypt the password
     $otp = $_POST['credentialOTP'];
     $url = $_POST['credentialURL'];
     $department_id = $_POST['department_id']; // Get the selected department ID
@@ -168,7 +188,7 @@ if (isset($_POST['editCredential'])) {
     $credential_id = $_POST['credential_id'];
     $name = $_POST['credentialName'];
     $username = $_POST['credentialUsername'];
-    $password = $_POST['credentialPassword'];
+    $password = encryptPassword($_POST['credentialPassword']); // Encrypt the password
     $otp = $_POST['credentialOTP'];
     $url = $_POST['credentialURL'];
     $department_id = $_POST['department_id']; // Get the selected department ID
@@ -280,3 +300,4 @@ function updateUserFields($userId, $fields) {
 }
 
 ?>
+
