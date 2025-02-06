@@ -112,6 +112,8 @@ $allPasswordsCount = $stmt->fetchColumn();
 $counts['All Passwords'] = $allPasswordsCount;
 
 $currentDepartment = $_GET['department'] ?? 'All Passwords';
+
+
 ?>
 
 <!DOCTYPE html>
@@ -214,17 +216,17 @@ $currentDepartment = $_GET['department'] ?? 'All Passwords';
                                 <i class="fas fa-exclamation-triangle"></i> Needs Update
                             </span>
                         </div>
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCredentialModal" 
-                                data-id="<?php echo $credential['credential_id']; ?>"
-                                data-name="<?php echo htmlspecialchars($credential['name']); ?>"
-                                data-username="<?php echo htmlspecialchars($credential['username']); ?>"
-                                data-password="<?php echo htmlspecialchars($credential['password']); ?>"
-                                data-otp="<?php echo htmlspecialchars($credential['otp']); ?>"
-                                data-url="<?php echo htmlspecialchars($credential['url']); ?>"
-                                data-department-id="<?php echo htmlspecialchars($credential['department_id']); ?>"
-                                onclick="populateEditModal(this)">
-                            <i class="fas fa-pencil-alt"></i> Update
-                        </button>
+<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCredentialModal" 
+        data-id="<?php echo $credential['credential_id']; ?>"
+        data-name="<?php echo htmlspecialchars($credential['name']); ?>"
+        data-username="<?php echo htmlspecialchars($credential['username']); ?>"
+        data-password="<?php echo htmlspecialchars(decryptPassword($credential['password'])); ?>"
+        data-otp="<?php echo htmlspecialchars($credential['otp']); ?>"
+        data-url="<?php echo htmlspecialchars($credential['url']); ?>"
+        data-department-id="<?php echo htmlspecialchars($credential['department_id']); ?>"
+        onclick="populateEditModal(this)">
+    <i class="fas fa-pencil-alt"></i> Update
+</button>
                     </div>
                 <?php endif; ?>
             <?php endforeach; ?>
@@ -307,11 +309,11 @@ $currentDepartment = $_GET['department'] ?? 'All Passwords';
                         </td>
                         <td>
                             <div class="d-flex align-items-center justify-content-center">
-                                <input type="password" value="<?php echo htmlspecialchars($credential['password']); ?>" class="form-control w-auto" readonly>
+                                <input type="password" value="<?php echo htmlspecialchars(decryptPassword($credential['password'])); ?>" class="form-control w-auto" readonly>
                                 <button class="btn btn-sm btn-outline-secondary ms-2" onclick="togglePassword(this)">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-secondary btn-copy ms-2" onclick="copyToClipboard(this, '<?php echo htmlspecialchars($credential['password']); ?>')">
+                                <button class="btn btn-sm btn-outline-secondary btn-copy ms-2" onclick="copyToClipboard(this, '<?php echo htmlspecialchars(decryptPassword($credential['password'])); ?>')">
                                     <i class="fas fa-clipboard"></i>
                                 </button>
                             </div>
@@ -326,19 +328,19 @@ $currentDepartment = $_GET['department'] ?? 'All Passwords';
                                     <i class="fas fa-ellipsis-h"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editCredentialModal" 
-                                           data-id="<?php echo $credential['credential_id']; ?>"
-                                           data-name="<?php echo htmlspecialchars($credential['name']); ?>"
-                                           data-username="<?php echo htmlspecialchars($credential['username']); ?>"
-                                           data-password="<?php echo htmlspecialchars($credential['password']); ?>"
-                                           data-otp="<?php echo htmlspecialchars($credential['otp']); ?>"
-                                           data-url="<?php echo htmlspecialchars($credential['url']); ?>"
-                                           data-department-id="<?php echo htmlspecialchars($credential['department_id']); ?>"
-                                           onclick="populateEditModal(this)">
-                                           <i class="fas fa-edit"></i> Edit
-                                        </a>
-                                    </li>
+<li>
+    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editCredentialModal" 
+       data-id="<?php echo $credential['credential_id']; ?>"
+       data-name="<?php echo htmlspecialchars($credential['name']); ?>"
+       data-username="<?php echo htmlspecialchars($credential['username']); ?>"
+       data-password="<?php echo htmlspecialchars(decryptPassword($credential['password'])); ?>"
+       data-otp="<?php echo htmlspecialchars($credential['otp']); ?>"
+       data-url="<?php echo htmlspecialchars($credential['url']); ?>"
+       data-department-id="<?php echo htmlspecialchars($credential['department_id']); ?>"
+       onclick="populateEditModal(this)">
+       <i class="fas fa-edit"></i> Edit
+    </a>
+</li>
                                     <?php if ($credential['user_id'] == $user_id || in_array($role, ['admin', 'manager'])): ?>
                                         <li>
                                             <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteCredentialModal" 
