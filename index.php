@@ -4,6 +4,11 @@ session_start();
 // Include the database configuration
 include('config.php');
 
+// Generate a CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Function to generate a TOTP code
 function generateTOTP() {
     return str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -27,7 +32,7 @@ function sendTOTPByEmail($email, $totp, $first_name, $base_url) {
     ";
     
     // Headers to specify HTML content
-    $headers = "From: PassNest - Password Manager <no-reply@passnest.com>\r\n";
+    $headers = "From: PassNest - Password Manager <no-reply@aftech.ro>\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
 
     return mail($email, $subject, $message, $headers);
@@ -35,18 +40,23 @@ function sendTOTPByEmail($email, $totp, $first_name, $base_url) {
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Handle initial login (username and password)
+    // Validate CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Invalid CSRF token.");
+    }
+
+    // Handle initial login (username/email and password)
     if (!isset($_SESSION['user_id_for_2fa'])) {
-        // Get the username and password from the form
-        $username = $_POST['username'];
+        // Get the username/email and password from the form
+        $usernameOrEmail = htmlspecialchars($_POST['username']);
         $password = $_POST['password'];
 
-        // Check if the username and password are provided
-        if (!empty($username) && !empty($password)) {
+        // Check if the username/email and password are provided
+        if (!empty($usernameOrEmail) && !empty($password)) {
             try {
                 // Prepare the SQL query to fetch user data from the database
-                $stmt = $pdo->prepare("SELECT user_id, first_name, second_name, role, password, status, verified, email FROM users WHERE username = :username");
-                $stmt->execute(['username' => $username]);
+                $stmt = $pdo->prepare("SELECT user_id, first_name, second_name, role, password, status, verified, email FROM users WHERE username = :usernameOrEmail OR email = :usernameOrEmail");
+                $stmt->execute(['usernameOrEmail' => $usernameOrEmail]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 // Check if the user exists
@@ -115,22 +125,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     } else {
                         // Invalid password
-                        $error_message = "Invalid username or password.";
+                        $error_message = "Invalid username/email or password.";
                     }
                 } else {
-                    // Invalid username
-                    $error_message = "Invalid username or password.";
+                    // Invalid username/email
+                    $error_message = "Invalid username/email or password.";
                 }
             } catch (PDOException $e) {
                 // Handle database connection errors
                 $error_message = "Error: " . $e->getMessage();
             }
         } else {
-            $error_message = "Please enter both username and password.";
+            $error_message = "Please enter both username/email and password.";
         }
     } else {
         // Handle OTP verification
-        $otp = $_POST['otp'];
+        $otp = htmlspecialchars($_POST['otp']);
 
         // Fetch the user's TOTP code and expiry time
         $stmt = $pdo->prepare("SELECT totp_code, totp_expiry, role FROM users WHERE user_id = :user_id");
@@ -163,11 +173,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 'error_message' => $error_message,
                 'user_id' => $_SESSION['user_id_for_2fa']
             ]);
+
+            // Clear the session variables to allow the user to go back to the login form
+            unset($_SESSION['user_id_for_2fa']);
+            unset($_SESSION['show_otp']);
         }
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -218,6 +231,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             right: 0;
             z-index: 1000;
             font-size: 0.8rem;
+        }
+
+        /* Progress Bar Animation */
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            width: 0;
+            background-color: green;
+            transition: width 1s linear, background-color 1s linear;
         }
     </style>
 </head>
@@ -271,15 +301,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </center>
                     <br>
 
-                    <form method="POST" action="index.php">
+                    <form method="POST" action="index.php" id="loginForm">
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+
                         <!-- Username and Password Fields -->
                         <?php if (!isset($_SESSION['show_otp'])): ?>
                             <div class="row mb-3">
                                 <div class="col-md-12">
-                                    <label for="username" class="form-label">Username</label>
+                                    <label for="username" class="form-label">Username or Email</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-user-circle"></i></span>
-                                        <input type="text" class="form-control" name="username" id="username" required placeholder="Enter username">
+                                        <input type="text" class="form-control" name="username" id="username" required placeholder="Enter username or email">
                                     </div>
                                 </div>
                             </div>
@@ -304,6 +337,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         <input type="text" class="form-control" name="otp" id="otp" required placeholder="Enter OTP">
                                     </div>
                                 </div>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="progress-bar">
+                                <div class="progress-bar-inner" id="progressBar"></div>
                             </div>
                         <?php endif; ?>
 
@@ -359,6 +396,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             var myModal = new bootstrap.Modal(document.getElementById('accountModal'));
             myModal.show();
         <?php endif; ?>
+    </script>
+
+    <!-- Progress Bar Animation and Form Handling -->
+    <script>
+        // Function to start the progress bar animation
+        function startProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            let width = 0;
+            const interval = 1000; // 1 second
+            const totalTime = 60000; // 60 seconds
+            const increment = (100 / (totalTime / interval));
+
+            const timer = setInterval(() => {
+                width += increment;
+                progressBar.style.width = width + '%';
+
+                // Change color based on time
+                if (width <= 43) {
+                    progressBar.style.backgroundColor = 'green';
+                } else if (width <= 50) {
+                    progressBar.style.backgroundColor = 'orange';
+                } else {
+                    progressBar.style.backgroundColor = 'red';
+                }
+
+                // Reset form after 60 seconds
+                if (width >= 100) {
+                    clearInterval(timer);
+                    // Clear session variables and reload the page
+                    fetch('reset_session.php')
+                        .then(() => window.location.href = 'index.php');
+                }
+            }, interval);
+        }
+
+        // Start the progress bar if OTP field is visible
+        <?php if (isset($_SESSION['show_otp'])): ?>
+            startProgressBar();
+        <?php endif; ?>
+
+        // Prevent form submission from opening a new window
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+            this.submit(); // Submit the form within the same window
+        });
     </script>
 </body>
 </html>
