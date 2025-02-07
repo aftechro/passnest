@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 06, 2025 at 12:56 PM
+-- Generation Time: Feb 07, 2025 at 10:13 PM
 -- Server version: 8.0.41-0ubuntu0.20.04.1
 -- PHP Version: 8.2.27
 
@@ -20,6 +20,24 @@ SET time_zone = "+00:00";
 --
 -- Database: `passnest`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `company`
+--
+
+CREATE TABLE `company` (
+  `id` int NOT NULL,
+  `company_name` varchar(255) NOT NULL,
+  `base_url` varchar(255) NOT NULL,
+  `announcement_title` varchar(255) NOT NULL,
+  `announcement_text` text NOT NULL,
+  `company_contact_name` varchar(255) NOT NULL,
+  `company_contact_email` varchar(255) NOT NULL,
+  `company_contact_mobile` varchar(20) NOT NULL,
+  `logo` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -112,6 +130,24 @@ CREATE TABLE `password_history` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `private_keys`
+--
+
+CREATE TABLE `private_keys` (
+  `credential_id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` text NOT NULL,
+  `otp` varchar(50) DEFAULT NULL,
+  `url` varchar(500) DEFAULT NULL,
+  `user_id` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -128,7 +164,9 @@ CREATE TABLE `users` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `role` enum('admin','manager','staff') NOT NULL,
   `verification_token` varchar(255) DEFAULT NULL,
-  `verification_token_expiry` timestamp NULL DEFAULT NULL
+  `verification_token_expiry` timestamp NULL DEFAULT NULL,
+  `totp_code` varchar(6) DEFAULT NULL,
+  `totp_expiry` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -143,12 +181,33 @@ CREATE TABLE `users_access` (
   `status` enum('active','suspended') DEFAULT 'active',
   `verified` tinyint(1) DEFAULT '0',
   `last_login` datetime DEFAULT NULL,
-  `ip_signed_in_from` varchar(45) DEFAULT NULL
+  `ip_signed_in_from` varchar(45) DEFAULT NULL,
+  `totp_success` tinyint(1) DEFAULT NULL,
+  `totp_error` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_2fa`
+--
+
+CREATE TABLE `user_2fa` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `totp_code` varchar(6) NOT NULL,
+  `totp_expiry` timestamp NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `company`
+--
+ALTER TABLE `company`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `credentials`
@@ -188,6 +247,13 @@ ALTER TABLE `password_history`
   ADD KEY `changed_by_user_id` (`changed_by_user_id`);
 
 --
+-- Indexes for table `private_keys`
+--
+ALTER TABLE `private_keys`
+  ADD PRIMARY KEY (`credential_id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -203,8 +269,21 @@ ALTER TABLE `users_access`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `user_2fa`
+--
+ALTER TABLE `user_2fa`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `company`
+--
+ALTER TABLE `company`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `credentials`
@@ -237,6 +316,12 @@ ALTER TABLE `password_history`
   MODIFY `password_history_id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `private_keys`
+--
+ALTER TABLE `private_keys`
+  MODIFY `credential_id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
@@ -246,6 +331,12 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `users_access`
 --
 ALTER TABLE `users_access`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_2fa`
+--
+ALTER TABLE `user_2fa`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
@@ -280,10 +371,22 @@ ALTER TABLE `password_history`
   ADD CONSTRAINT `password_history_ibfk_2` FOREIGN KEY (`changed_by_user_id`) REFERENCES `users` (`user_id`);
 
 --
+-- Constraints for table `private_keys`
+--
+ALTER TABLE `private_keys`
+  ADD CONSTRAINT `private_keys_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `users_access`
 --
 ALTER TABLE `users_access`
   ADD CONSTRAINT `users_access_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+
+--
+-- Constraints for table `user_2fa`
+--
+ALTER TABLE `user_2fa`
+  ADD CONSTRAINT `user_2fa_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
