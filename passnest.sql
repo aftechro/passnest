@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 07, 2025 at 10:13 PM
+-- Generation Time: Feb 09, 2025 at 12:09 AM
 -- Server version: 8.0.41-0ubuntu0.20.04.1
 -- PHP Version: 8.2.27
 
@@ -92,24 +92,15 @@ CREATE TABLE `department_members` (
 CREATE TABLE `logs` (
   `log_id` int NOT NULL,
   `user_id` int NOT NULL,
-  `target_user_id` int DEFAULT NULL,
-  `target_department_id` int DEFAULT NULL,
-  `target_credential_id` int DEFAULT NULL,
-  `credential_id` int DEFAULT NULL,
   `action` varchar(255) NOT NULL,
-  `action_type` enum('create','edit','delete') NOT NULL,
+  `action_type` enum('create','edit','delete','login','failed_login') NOT NULL,
+  `target_type` varchar(50) DEFAULT NULL,
+  `target_id` int DEFAULT NULL,
   `old_value` text,
   `new_value` text,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `old_status` varchar(255) DEFAULT NULL,
-  `new_status` varchar(255) DEFAULT NULL,
-  `old_role` varchar(255) DEFAULT NULL,
-  `new_role` varchar(255) DEFAULT NULL,
-  `old_verified` tinyint(1) DEFAULT NULL,
-  `new_verified` tinyint(1) DEFAULT NULL,
+  `details` text,
   `ip_address` varchar(45) DEFAULT NULL,
-  `login_status` enum('success','failure') DEFAULT NULL,
-  `details` text NOT NULL
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -235,8 +226,7 @@ ALTER TABLE `department_members`
 --
 ALTER TABLE `logs`
   ADD PRIMARY KEY (`log_id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `credential_id` (`credential_id`);
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `password_history`
@@ -360,8 +350,7 @@ ALTER TABLE `department_members`
 -- Constraints for table `logs`
 --
 ALTER TABLE `logs`
-  ADD CONSTRAINT `logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
-  ADD CONSTRAINT `logs_ibfk_2` FOREIGN KEY (`credential_id`) REFERENCES `credentials` (`credential_id`);
+  ADD CONSTRAINT `logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `password_history`
