@@ -330,6 +330,11 @@ ALTER TABLE `user_2fa`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
+
+ALTER TABLE users ADD COLUMN remember_token VARCHAR(255) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN remember_token_expiry DATETIME DEFAULT NULL;
+
+
 -- Constraints for dumped tables
 --
 
